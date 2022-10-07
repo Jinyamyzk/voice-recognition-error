@@ -44,21 +44,3 @@ class SentenceBertClassifier(nn.Module):
         output = self.cls(torch.cat((text_embeddings,context_embeddings, combined_embeddings), dim=1))
 
         return output
-
-
-    @torch.no_grad()
-    def encode(self, sentences, batch_size=8):
-        all_embeddings = []
-        iterator = range(0, len(sentences), batch_size)
-        for batch_idx in iterator:
-            batch = sentences[batch_idx:batch_idx + batch_size]
-
-            encoded_input = self.tokenizer.batch_encode_plus(batch, padding="longest", 
-                                           truncation=True, return_tensors="pt").to(self.device)
-            model_output = self.model(**encoded_input)
-            sentence_embeddings = self._mean_pooling(model_output, encoded_input["attention_mask"]).to('cpu')
-
-            all_embeddings.extend(sentence_embeddings)
-
-        # return torch.stack(all_embeddings).numpy()
-        return torch.stack(all_embeddings)
