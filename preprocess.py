@@ -7,6 +7,7 @@ import urllib
 import json
 import spacy
 from sklearn.model_selection import train_test_split
+import glob
 
 
 kakasi = kakasi()
@@ -80,41 +81,35 @@ def create_df_for_BERT(df):
     new_df = pd.DataFrame(data, columns=["target", "former", "latter", "label"])
 
     return new_df
-            
-            
 
+def main():
+    conversation = []
+    files = glob.glob("corpus/**/**/*.xlsx")
+    for file in files:
+        df = pd.read_excel("./corpus/17. 友人同士討論(男女)/友人同士討論(男女)5会話/258-17-JF110-JM038.xlsx",
+                                    index_col=None,names=["speaker","raw_content"],skiprows=[0,1],usecols=[6,7])
+        conversation.append(df)
+    conversation = pd.concat(conversation, axis=0, ignore_index=True)
 
-
-
-if __name__ == "__main__":
-    conversation = pd.read_excel("./corpus/17. 友人同士討論(男女)/友人同士討論(男女)5会話/258-17-JF110-JM038.xlsx",
-                                    index_col=None,names=["speaker","content_raw"],skiprows=[0,1],usecols=[6,7])
-        
-    conversation = conversation.iloc[:30,:] # デバッグ用
-
-    conversation["content"] = conversation["content_raw"].apply(remove_symbol)
-    print(conversation["content_raw"].head())
-    print(conversation["content"].head())
-
-    random_order = list(range(len(conversation)))
-    random.shuffle(random_order)
+    conversation["content"] = conversation["raw_content"].apply(remove_symbol)
 
     conversation["noised"] = ""
-
-    for row in random_order:
+    for row in range(len(conversation)):
         text = conversation.iloc[row, 2]
         result = noise(text)
         if result:
             conversation.iat[row, 3] = result
     
-    print(conversation[~(conversation["noised"]=="")].iloc[:,[2,3]])
-
     df_for_BERT = create_df_for_BERT(conversation)
-    df_for_BERT = df_for_BERT.sample(frac=1, random_state=123).reset_index(drop=True)
-
+    
     df_train, df_valid_test = train_test_split(df_for_BERT, test_size=0.2, shuffle=True, random_state=123, stratify=df_for_BERT["label"])
-    df_valid, df_test = train_test_split(df_for_BERT, test_size=0.5, shuffle=True, random_state=123, stratify=df_for_BERT["label"])
+    df_valid, df_test = train_test_split(df_valid_test, test_size=0.5, shuffle=True, random_state=123, stratify=df_valid_test["label"])
+
+    print(f"train: {len(df_train)}, valid: {len(df_valid)}, test: {len(df_test)}")
 
     df_train.to_csv("data/train.tsv", sep="\t", index=False, header=False)
     df_valid.to_csv("data/valid.tsv", sep="\t", index=False, header=False)
     df_test.to_csv("data/test.tsv", sep="\t", index=False, header=False)
+            
+if __name__ == "__main__":
+    main()
