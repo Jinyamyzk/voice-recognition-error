@@ -86,8 +86,7 @@ def main():
     conversation = []
     files = glob.glob("corpus/**/**/*.xlsx")
     for file in files:
-        df = pd.read_excel("./corpus/17. 友人同士討論(男女)/友人同士討論(男女)5会話/258-17-JF110-JM038.xlsx",
-                                    index_col=None,names=["speaker","raw_content"],skiprows=[0,1],usecols=[6,7])
+        df = pd.read_excel(file,index_col=None,names=["speaker","raw_content"],skiprows=[0,1],usecols=[6,7])
         conversation.append(df)
     conversation = pd.concat(conversation, axis=0, ignore_index=True)
 
