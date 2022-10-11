@@ -200,14 +200,3 @@ print('テストデータ{}個での正解率：{:.4f}'.format(len(dl_test.datas
 
 
 
-# # データローダーからミニバッチを取り出すループ
-# for batch in (dataloaders_dict["train"]):
-#     # batchはTextとLableの辞書型変数
-
-#     # GPUが使えるならGPUにデータを送る
-#     text_ids = batch.Text[0]
-#     former_text_ids = batch.FormerText[0]
-#     latter_text_ids = batch.LatterText[0]
-#     labels = batch.Label.size()  # ラベル
-#     outputs = net(text_ids, former_text_ids, latter_text_ids)
-#     print(outputs.size())
