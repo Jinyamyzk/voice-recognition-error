@@ -1,8 +1,11 @@
 import torch
 from torchtext.legacy import data
+import torch.optim as optim
+from torch import nn
 from transformers import BertModel
 from transformers import BertJapaneseTokenizer
 from utils.setence_bert_classifier import SentenceBertClassifier
+from tqdm import tqdm
 
 
 # モデルを学習させる関数を作成
@@ -21,6 +24,69 @@ def train_model(net, dataloaders_dict, criterion, optimizer, num_epochs):
 
     # ミニバッチのサイズ
     batch_size = dataloaders_dict["train"].batch_size
+
+     # epochのループ
+    for epoch in range(num_epochs):
+        # epochごとの訓練と検証のループ
+        for phase in ['train', 'val']:
+            if phase == 'train':
+                net.train()  # モデルを訓練モードに
+            else:
+                net.eval()   # モデルを検証モードに
+
+            epoch_loss = 0.0  # epochの損失和
+            epoch_corrects = 0  # epochの正解数
+            iteration = 1
+
+            # データローダーからミニバッチを取り出すループ
+            for batch in (dataloaders_dict[phase]):
+                # batchはTextとLableの辞書型変数
+
+                # GPUが使えるならGPUにデータを送る
+                text_ids = batch.Text[0].to(device)
+                former_text_ids = batch.FormerText[0].to(device)
+                latter_text_ids = batch.LatterText[0].to(device)
+                labels = batch.Label.to(device)  # ラベル
+
+                # optimizerを初期化
+                optimizer.zero_grad()
+
+                # 順伝搬（forward）計算
+                with torch.set_grad_enabled(phase == 'train'):
+
+                    # BERTに入力
+                    outputs = net(text_ids, former_text_ids, latter_text_ids)
+
+                    loss = criterion(outputs, labels)  # 損失を計算
+
+                    _, preds = torch.max(outputs, 1)  # ラベルを予測
+
+                    # 訓練時はバックプロパゲーション
+                    if phase == 'train':
+                        loss.backward()
+                        optimizer.step()
+
+                        if (iteration % 10 == 0):  # 10iterに1度、lossを表示
+                            acc = (torch.sum(preds == labels.data)
+                                   ).double()/batch_size
+                            print('イテレーション {} || Loss: {:.4f} || 10iter. || 本イテレーションの正解率：{}'.format(
+                                iteration, loss.item(),  acc))
+
+                    iteration += 1
+
+                    # 損失と正解数の合計を更新
+                    epoch_loss += loss.item() * batch_size
+                    epoch_corrects += torch.sum(preds == labels.data)
+
+            # epochごとのlossと正解率
+            epoch_loss = epoch_loss / len(dataloaders_dict[phase].dataset)
+            epoch_acc = epoch_corrects.double(
+            ) / len(dataloaders_dict[phase].dataset)
+
+            print('Epoch {}/{} | {:^5} |  Loss: {:.4f} Acc: {:.4f}'.format(epoch+1, num_epochs,
+                                                                           phase, epoch_loss, epoch_acc))
+
+    return net
 
 
 
@@ -73,14 +139,75 @@ print(batch.Label.shape)
 
 net = SentenceBertClassifier()
 
-# データローダーからミニバッチを取り出すループ
-for batch in (dataloaders_dict["train"]):
-    # batchはTextとLableの辞書型変数
+# 訓練モードに設定
+net.train()
 
+# 勾配計算を分類アダプターのみ実行
+# 1. まず全てを、勾配計算Falseにしてしまう
+for param in net.parameters():
+    param.requires_grad = False
+# 2. 識別器を勾配計算ありに変更
+for param in net.cls.parameters():
+    param.requires_grad = True
+
+# 最適化手法の設定
+optimizer = optim.Adam([{'params': net.cls.parameters(), 'lr': 1e-4}])
+# 損失関数の設定
+criterion = nn.CrossEntropyLoss()
+
+# 学習・検証を実行する。1epochに2分ほどかかります
+num_epochs = 5
+net_trained = train_model(net, dataloaders_dict,
+                          criterion, optimizer, num_epochs=num_epochs)
+
+
+
+
+# テストデータでの正解率を求める
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+net_trained.eval()   # モデルを検証モードに
+net_trained.to(device)  # GPUが使えるならGPUへ送る
+
+# epochの正解数を記録する変数
+epoch_corrects = 0
+
+for batch in tqdm(dl_test):  # testデータのDataLoader
+    # batchはTextとLableの辞書オブジェクト
     # GPUが使えるならGPUにデータを送る
-    text_ids = batch.Text[0]
-    former_text_ids = batch.FormerText[0]
-    latter_text_ids = batch.LatterText[0]
-    labels = batch.Label.size()  # ラベル
-    outputs = net(text_ids, former_text_ids, latter_text_ids)
-    print(outputs.size())
+    text_ids = batch.Text[0].to(device)
+    former_text_ids = batch.FormerText[0].to(device)
+    latter_text_ids = batch.LatterText[0].to(device)
+    labels = batch.Label.to(device)  # ラベル
+
+    # 順伝搬（forward）計算
+    with torch.set_grad_enabled(False):
+
+        # BertForLivedoorに入力
+        outputs = net_trained(text_ids, former_text_ids, latter_text_ids)
+
+        loss = criterion(outputs, labels)  # 損失を計算
+        _, preds = torch.max(outputs, 1)  # ラベルを予測
+        epoch_corrects += torch.sum(preds == labels.data)  # 正解数の合計を更新
+
+# 正解率
+epoch_acc = epoch_corrects.double() / len(dl_test.dataset)
+
+print('テストデータ{}個での正解率：{:.4f}'.format(len(dl_test.dataset), epoch_acc))
+
+
+
+
+
+
+# # データローダーからミニバッチを取り出すループ
+# for batch in (dataloaders_dict["train"]):
+#     # batchはTextとLableの辞書型変数
+
+#     # GPUが使えるならGPUにデータを送る
+#     text_ids = batch.Text[0]
+#     former_text_ids = batch.FormerText[0]
+#     latter_text_ids = batch.LatterText[0]
+#     labels = batch.Label.size()  # ラベル
+#     outputs = net(text_ids, former_text_ids, latter_text_ids)
+#     print(outputs.size())

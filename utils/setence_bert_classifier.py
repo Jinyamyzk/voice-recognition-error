@@ -1,4 +1,3 @@
-from cgitb import text
 from transformers import BertModel
 import torch
 from torch import nn
@@ -13,8 +12,8 @@ class SentenceBertClassifier(nn.Module):
         self.sentence_BERT = BertModel.from_pretrained("sonoisa/sentence-bert-base-ja-mean-tokens")
 
         # classifier
-        # input: BERT output 768*3 dim, output: 1 dim
-        self.cls = nn.Linear(in_features=2304, out_features=1)
+        # input: BERT output 768*3 dim, output: 2 dim
+        self.cls = nn.Linear(in_features=2304, out_features=2)
 
         # 重み初期化処理
         nn.init.normal_(self.cls.weight, std=0.02)
@@ -26,6 +25,7 @@ class SentenceBertClassifier(nn.Module):
         return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
 
     def forward(self, text_ids, former_ids, latter_ids):
+        # attention maskの作成, idが0(pad token)なら0
         text_attn_mask = torch.where(text_ids > 0, 1, 0)
         former_attn_mask = torch.where(former_ids > 0, 1, 0)
         latter_attn_mask = torch.where(latter_ids > 0, 1, 0)
