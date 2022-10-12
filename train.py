@@ -5,6 +5,8 @@ from torch import nn
 from transformers import BertModel
 from transformers import BertJapaneseTokenizer
 from utils.setence_bert_classifier import SentenceBertClassifier
+import matplotlib.pyplot as plt
+import japanize_matplotlib
 from tqdm import tqdm
 
 
@@ -24,6 +26,11 @@ def train_model(net, dataloaders_dict, criterion, optimizer, num_epochs):
 
     # ミニバッチのサイズ
     batch_size = dataloaders_dict["train"].batch_size
+
+    train_loss_list = []
+    train_acc_list = []
+    valid_loss_list = []
+    valid_acc_list = []
 
      # epochのループ
     for epoch in range(num_epochs):
@@ -85,6 +92,33 @@ def train_model(net, dataloaders_dict, criterion, optimizer, num_epochs):
 
             print('Epoch {}/{} | {:^5} |  Loss: {:.4f} Acc: {:.4f}'.format(epoch+1, num_epochs,
                                                                            phase, epoch_loss, epoch_acc))
+            
+            if phase == "train":
+                train_loss_list.append(epoch_loss)
+                train_acc_list.append(epoch_acc)
+            else:
+                valid_loss_list.append(epoch_loss)
+                valid_acc_list.append(epoch_acc)
+    
+    # 学習曲線 (損失関数値)
+    plt.figure(figsize=(8,6))
+    plt.plot(valid_loss_list,label='adam', lw=3, c='b')
+    plt.title('学習曲線 (損失関数値)')
+    plt.xticks(size=14)
+    plt.yticks(size=14)
+    plt.grid(lw=2)
+    plt.legend(fontsize=14)
+    plt.savefig("loss.png")
+
+    # 学習曲線 (精度)
+    plt.figure(figsize=(8,6))
+    plt.plot(valid_acc_list,label='adam', lw=3, c='b')
+    plt.title('学習曲線 (精度)')
+    plt.xticks(size=14)
+    plt.yticks(size=14)
+    plt.grid(lw=2)
+    plt.legend(fontsize=14)
+    plt.savefig("acc.png")
 
     return net
 
@@ -159,6 +193,9 @@ criterion = nn.CrossEntropyLoss()
 num_epochs = 5
 net_trained = train_model(net, dataloaders_dict,
                           criterion, optimizer, num_epochs=num_epochs)
+
+# モデルの保存
+torch.save(net_trained.state_dict(), "model")
 
 
 

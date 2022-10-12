@@ -84,7 +84,7 @@ def create_df_for_BERT(df):
 
 def main():
     conversation = []
-    files = glob.glob("corpus/**/**/*.xlsx")
+    files = glob.glob("btsjcorpus_ver_march_2022_1-29/**/**/*.xlsx")
     for file in files:
         df = pd.read_excel(file,index_col=None,names=["speaker","raw_content"],skiprows=[0,1],usecols=[6,7])
         conversation.append(df)
