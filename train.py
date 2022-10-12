@@ -6,7 +6,6 @@ from transformers import BertModel
 from transformers import BertJapaneseTokenizer
 from utils.setence_bert_classifier import SentenceBertClassifier
 import matplotlib.pyplot as plt
-import japanize_matplotlib
 from tqdm import tqdm
 
 
@@ -103,7 +102,7 @@ def train_model(net, dataloaders_dict, criterion, optimizer, num_epochs):
     # 学習曲線 (損失関数値)
     plt.figure(figsize=(8,6))
     plt.plot(valid_loss_list,label='adam', lw=3, c='b')
-    plt.title('学習曲線 (損失関数値)')
+    plt.title('learning curve (loss)')
     plt.xticks(size=14)
     plt.yticks(size=14)
     plt.grid(lw=2)
@@ -113,7 +112,7 @@ def train_model(net, dataloaders_dict, criterion, optimizer, num_epochs):
     # 学習曲線 (精度)
     plt.figure(figsize=(8,6))
     plt.plot(valid_acc_list,label='adam', lw=3, c='b')
-    plt.title('学習曲線 (精度)')
+    plt.title('learning curve (accuracy)')
     plt.xticks(size=14)
     plt.yticks(size=14)
     plt.grid(lw=2)
