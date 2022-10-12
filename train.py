@@ -92,7 +92,7 @@ def train_model(net, dataloaders_dict, criterion, optimizer, num_epochs):
             print('Epoch {}/{} | {:^5} |  Loss: {:.4f} Acc: {:.4f}'.format(epoch+1, num_epochs,
                                                                            phase, epoch_loss, epoch_acc))
             
-            epoch_acc.cpu()
+            epoch_acc = epoch_acc.cpu()
             if phase == "train":
                 train_loss_list.append(epoch_loss)
                 train_acc_list.append(epoch_acc)

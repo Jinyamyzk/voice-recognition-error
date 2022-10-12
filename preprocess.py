@@ -8,7 +8,7 @@ import json
 import spacy
 from sklearn.model_selection import train_test_split
 import glob
-
+from tqdm import tqdm
 
 kakasi = kakasi()
 nlp = spacy.load('ja_ginza')
@@ -66,7 +66,7 @@ def noise(text):
 
 def create_df_for_BERT(df):
     data = []
-    for row in range(len(df)):
+    for row in tqdm(range(len(df)), desc="[Creating dataframe]"):
         former_idx = row - 5 if row >= 5 else 0
         latter_idx = row + 5 if row + 5 > len(df) else len(df)
         former = "".join(df.iloc[former_idx:row, 2].to_list())
@@ -85,7 +85,7 @@ def create_df_for_BERT(df):
 def main():
     conversation = []
     files = glob.glob("btsjcorpus_ver_march_2022_1-29/**/**/*.xlsx")
-    for file in files:
+    for file in tqdm(files, desc="[Loading excel]"):
         df = pd.read_excel(file,index_col=None,names=["speaker","raw_content"],skiprows=[0,1],usecols=[6,7])
         conversation.append(df)
     conversation = pd.concat(conversation, axis=0, ignore_index=True)
@@ -93,7 +93,7 @@ def main():
     conversation["content"] = conversation["raw_content"].apply(remove_symbol)
 
     conversation["noised"] = ""
-    for row in range(len(conversation)):
+    for row in tqdm(range(len(conversation)), desc="[Noising text]"):
         text = conversation.iloc[row, 2]
         result = noise(text)
         if result:
