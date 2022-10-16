@@ -190,7 +190,7 @@ optimizer = optim.Adam([{'params': net.cls.parameters(), 'lr': 1e-4}])
 criterion = nn.CrossEntropyLoss()
 
 # 学習・検証を実行する。1epochに2分ほどかかります
-num_epochs = 1
+num_epochs = 5
 net_trained = train_model(net, dataloaders_dict,
                           criterion, optimizer, num_epochs=num_epochs)
 
