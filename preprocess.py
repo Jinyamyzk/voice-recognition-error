@@ -116,8 +116,11 @@ def main(folder_num):
     #     raise FileExistsError("data/train.tsv already exists")
     os.makedirs("data", exist_ok=True)
 
-    files = glob.glob(f"btsjcorpus_ver_march_2022_1-29_{folder_num}/**/**/*.xlsx")
-    # files = glob.glob("test/**/**/*.xlsx")
+    if folder_num == "t":
+        files = glob.glob("test/**/**/*.xlsx")
+    else:        
+        files = glob.glob(f"btsjcorpus_ver_march_2022_1-29_{folder_num}/**/**/*.xlsx")
+        
     conversation_list = []
     for file in tqdm(files, desc="[Loading excel]"):
         df = pd.read_excel(file,index_col=None,names=["speaker","raw_content"],skiprows=[0,1],usecols=[6,7])
@@ -145,6 +148,6 @@ def main(folder_num):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("folder_num", help="Choose folder (1 or 2)")
+    parser.add_argument("folder_num", help="Choose folder (1,2, or t for test)")
     args = parser.parse_args()
     main(args.folder_num)
