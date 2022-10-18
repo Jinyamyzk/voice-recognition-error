@@ -1,5 +1,3 @@
-from email import header
-from statistics import mode
 import pandas as pd
 import re
 import random
@@ -10,8 +8,8 @@ import spacy
 from sklearn.model_selection import train_test_split
 import glob
 import os
+import argparse
 from tqdm import tqdm
-
 import warnings
 warnings.simplefilter("ignore") # tqdmの出力を見やすくする
 
@@ -112,34 +110,41 @@ def create_df_for_BERT(df):
 
     return new_df
 
-def main():
-    # 既にtrain.tsvが存在している場合中止(上書きしてしまうため)
-    if os.path.isfile("data/train.tsv"):
-        raise FileExistsError("data/train.tsv already exists")
+def main(folder_num):
+    # # 既にtrain.tsvが存在している場合中止
+    # if os.path.isfile("data/train.tsv"):
+    #     raise FileExistsError("data/train.tsv already exists")
     os.makedirs("data", exist_ok=True)
 
-    # files = glob.glob("btsjcorpus_ver_march_2022_1-29/**/**/*.xlsx")
-    files = glob.glob("test/**/**/*.xlsx")
+    files = glob.glob(f"btsjcorpus_ver_march_2022_1-29_{folder_num}/**/**/*.xlsx")
+    # files = glob.glob("test/**/**/*.xlsx")
+    conversation_list = []
     for file in tqdm(files, desc="[Loading excel]"):
-        conversation = pd.read_excel(file,index_col=None,names=["speaker","raw_content"],skiprows=[0,1],usecols=[6,7])
-        conversation["content"] = conversation["raw_content"].apply(remove_symbol)
-        conversation["noised"] = ""
-        for row in tqdm(range(len(conversation)), desc="[Noising texts]"):
-            text = conversation.iloc[row, 2]
-            result = noise_(text)
-            if result:
-                conversation.iat[row, 3] = result
+        df = pd.read_excel(file,index_col=None,names=["speaker","raw_content"],skiprows=[0,1],usecols=[6,7])
+        conversation_list.append(df)
+    conversation = pd.concat(conversation_list, axis=0)    
+    print(f"データ\n{conversation.info()}")
+    conversation["content"] = conversation["raw_content"].apply(remove_symbol)
+    conversation["noised"] = ""
+    for row in tqdm(range(len(conversation)), desc="[Noising texts]"):
+        text = conversation.iloc[row, 2]
+        result = noise_(text)
+        if result:
+            conversation.iat[row, 3] = result
 
-        df_for_BERT = create_df_for_BERT(conversation)
-        
-        dt_train, df_valid_test = train_test_split(df_for_BERT, test_size=0.2, shuffle=True, random_state=123, stratify=df_for_BERT["label"])
-        df_valid, dt_fest = train_test_split(df_valid_test, test_size=0.5, shuffle=True, random_state=123, stratify=df_valid_test["label"])
+    df_for_BERT = create_df_for_BERT(conversation)
+    
+    dt_train, df_valid_test = train_test_split(df_for_BERT, test_size=0.2, shuffle=True, random_state=123, stratify=df_for_BERT["label"])
+    df_valid, dt_fest = train_test_split(df_valid_test, test_size=0.5, shuffle=True, random_state=123, stratify=df_valid_test["label"])
 
-        print(f"train: {len(dt_train)}, valid: {len(df_valid)}, test: {len(dt_fest)}")
+    print(f"train: {len(dt_train)}, valid: {len(df_valid)}, test: {len(dt_fest)}")
 
-        dt_train.to_csv("data/train.tsv", sep="\t", index=False, header=False, mode="a")
-        df_valid.to_csv("data/valid.tsv", sep="\t", index=False, header=False, mode="a")
-        dt_fest.to_csv("data/test.tsv", sep="\t", index=False, header=False, mode="a")
+    dt_train.to_csv("data/train.tsv", sep="\t", index=False, header=False, mode="a")
+    df_valid.to_csv("data/valid.tsv", sep="\t", index=False, header=False, mode="a")
+    dt_fest.to_csv("data/test.tsv", sep="\t", index=False, header=False, mode="a")
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("folder_num", help="Choose folder (1 or 2)")
+    args = parser.parse_args()
+    main(args.folder_num)
