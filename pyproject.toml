@@ -19,6 +19,7 @@ openpyxl = "^3.0.10"
 fugashi = "^1.2.0"
 ipadic = "^1.0.0"
 matplotlib = "^3.6.1"
+memory-profiler = "^0.60.0"
 
 [tool.poetry.dev-dependencies]
 
