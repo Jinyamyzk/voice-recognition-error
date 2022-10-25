@@ -152,8 +152,11 @@ def main():
     LABEL = data.Field(sequential=False, use_vocab=False)
 
     dataset_train, dataset_valid, dataset_test = data.TabularDataset.splits(
-        path="data", train="train.tsv", validation="valid.tsv",test="test.tsv", format="tsv", fields=[
+        path="test_data", train="train.tsv", validation="valid.tsv",test="test.tsv", format="tsv", fields=[
             ("Id", ID), ("Label", LABEL)])
+    # dataset_train, dataset_valid, dataset_test = data.TabularDataset.splits(
+    #     path="data", train="train.tsv", validation="valid.tsv",test="test.tsv", format="tsv", fields=[
+    #         ("Id", ID), ("Label", LABEL)])
     
     # DataLoaderを作成します（torchtextの文脈では単純にiteraterと呼ばれています）
     batch_size = 16  # BERTでは16、32あたりを使用する

@@ -29,16 +29,16 @@ def main():
     ids = pd.concat([ids_noised, ids_not_noised])
     print(f"num noised: {len(ids_noised)}, num not noised: {len(ids_not_noised)}")
 
-    dt_train, df_valid_test = train_test_split(ids, test_size=0.2, shuffle=True, random_state=123, stratify=ids["label"])
-    df_valid, dt_fest = train_test_split(df_valid_test, test_size=0.5, shuffle=True, random_state=123, stratify=df_valid_test["label"])
+    df_train, df_valid_test = train_test_split(ids, test_size=0.2, shuffle=True, random_state=123, stratify=ids["label"])
+    df_valid, df_test = train_test_split(df_valid_test, test_size=0.5, shuffle=True, random_state=123, stratify=df_valid_test["label"])
 
-    print(f"train: {len(dt_train)}, valid: {len(df_valid)}, test: {len(dt_fest)}")
+    print(f"train: {len(df_train)}, valid: {len(df_valid)}, test: {len(df_test)}")
 
     df.to_csv("data/ref/data_ref", sep="\t")
 
-    dt_train.to_csv("data/train.tsv", sep="\t", index=False, header=False)
+    df_train.to_csv("data/train.tsv", sep="\t", index=False, header=False)
     df_valid.to_csv("data/valid.tsv", sep="\t", index=False, header=False)
-    dt_fest.to_csv("data/test.tsv", sep="\t", index=False, header=False)
+    df_test.to_csv("data/test.tsv", sep="\t", index=False, header=False)
 
 if __name__ == "__main__":
     main()
