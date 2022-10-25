@@ -201,7 +201,7 @@ def main():
                             criterion, optimizer, num_epochs=num_epochs)
     
     # モデルの保存
-    torch.save(net_trained.state_dict(), "model")
+    torch.save(net_trained.state_dict(), "model/model_trained.pt")
 
 if __name__ == "__main__":
     main()
