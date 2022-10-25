@@ -11,7 +11,26 @@ from tqdm import tqdm
 # 日本語BERTの分かち書き用tokenizerです
 tokenizer = BertJapaneseTokenizer.from_pretrained("cl-tohoku/bert-base-japanese-whole-word-masking")
 max_length = 512  # 東北大学_日本語版の最大の単語数（サブワード数）は512
-    
+
+def get_text(batch_ids, ref):
+    batch_ids = batch_ids.tolist()
+
+    text_ids = []
+    former_text_ids = []
+    latter_text_ids = []
+
+    for id in batch_ids:
+        text = tokenizer_512(ref.iat[id, 1])
+        former = tokenizer_512("".join(ref.iloc[id-5:id, 0].to_list()))
+        latter = tokenizer_512("".join(ref.iloc[id+1:id+5, 0].to_list()))
+        text_ids.append(text)
+        former_text_ids.append(former)
+        latter_text_ids.append(latter)
+    return torch.tensor(text_ids), torch.tensor(former_text_ids), torch.tensor(latter_text_ids)
+
+def tokenizer_512(input_text):
+    """torchtextのtokenizerとして扱えるように、512単語のpytorchでのencodeを定義。ここで[0]を指定し忘れないように"""
+    return tokenizer.encode(input_text, truncation=True, padding="max_length" ,max_length=512)
 
 def train_model(net, dataloaders_dict, criterion, optimizer, num_epochs):
     ref = pd.read_csv("data/ref/data_ref.tsv", sep="\t", index_col=0)
@@ -125,38 +144,17 @@ def train_model(net, dataloaders_dict, criterion, optimizer, num_epochs):
     plt.savefig("acc.png")
 
     return net
-                
-
-def get_text(batch_ids, ref):
-    batch_ids = batch_ids.tolist()
-
-    text_ids = []
-    former_text_ids = []
-    latter_text_ids = []
-
-    for id in batch_ids:
-        text = tokenizer_512(ref.iat[id, 1])
-        former = tokenizer_512("".join(ref.iloc[id-5:id, 0].to_list()))
-        latter = tokenizer_512("".join(ref.iloc[id+1:id+5, 0].to_list()))
-        text_ids.append(text)
-        former_text_ids.append(former)
-        latter_text_ids.append(latter)
-    return torch.tensor(text_ids), torch.tensor(former_text_ids), torch.tensor(latter_text_ids)
-
-def tokenizer_512(input_text):
-    """torchtextのtokenizerとして扱えるように、512単語のpytorchでのencodeを定義。ここで[0]を指定し忘れないように"""
-    return tokenizer.encode(input_text, truncation=True, padding="max_length" ,max_length=512)
-
+            
 def main():
     ID = data.Field(sequential=False, use_vocab=False)
     LABEL = data.Field(sequential=False, use_vocab=False)
 
-    dataset_train, dataset_valid, dataset_test = data.TabularDataset.splits(
-        path="test_data", train="train.tsv", validation="valid.tsv",test="test.tsv", format="tsv", fields=[
-            ("Id", ID), ("Label", LABEL)])
     # dataset_train, dataset_valid, dataset_test = data.TabularDataset.splits(
-    #     path="data", train="train.tsv", validation="valid.tsv",test="test.tsv", format="tsv", fields=[
+    #     path="test_data", train="train.tsv", validation="valid.tsv",test="test.tsv", format="tsv", fields=[
     #         ("Id", ID), ("Label", LABEL)])
+    dataset_train, dataset_valid, dataset_test = data.TabularDataset.splits(
+        path="data", train="train.tsv", validation="valid.tsv",test="test.tsv", format="tsv", fields=[
+            ("Id", ID), ("Label", LABEL)])
     
     # DataLoaderを作成します（torchtextの文脈では単純にiteraterと呼ばれています）
     batch_size = 16  # BERTでは16、32あたりを使用する
