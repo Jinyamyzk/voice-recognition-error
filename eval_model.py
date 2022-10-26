@@ -80,12 +80,12 @@ def main():
             _, preds = torch.max(outputs, 1)  # ラベルを予測
             epoch_corrects += torch.sum(preds == labels.data)  # 正解数の合計を更新
 
-            for text, former, latter, correct in zip(text_ids.tolist(), former_text_ids.tolist(), latter_text_ids.tolist(), (preds == labels.data).tolist()):
-                text = "".join(tokenizer.convert_ids_to_tokens(text))
-                former = "".join(tokenizer.convert_ids_to_tokens(former))
-                latter = "".join(tokenizer.convert_ids_to_tokens(latter))
-                test_result.append([
-                    text, former, latter, correct
+            for text, former, latter, label,correct in zip(text_ids.tolist(), former_text_ids.tolist(), latter_text_ids.tolist(), labels.tolist(), (preds == labels.data).tolist()):
+                text = "".join(tokenizer.convert_ids_to_tokens(text, skip_special_tokens=True)).replace("#", "")
+                former = "".join(tokenizer.convert_ids_to_tokens(former, skip_special_tokens=True)).replace("#", "")
+                latter = "".join(tokenizer.convert_ids_to_tokens(latter, skip_special_tokens=True)).replace("#", "")
+                test_result.append([ 
+                    text, former, latter, label, correct
                 ])
 
 
@@ -98,6 +98,7 @@ def main():
     # 結果の書き出し
     with open('test_result.csv', 'w') as f:
         writer = csv.writer(f)
+        writer.writerow(["text", "former text", "latter text", "noised", "correct(1)/incorrect(0)"])
         writer.writerows(test_result)
 
 if __name__ == "__main__":
