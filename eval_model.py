@@ -4,6 +4,7 @@ from torch import nn
 from transformers import BertJapaneseTokenizer
 from utils.setence_bert_classifier import SentenceBertClassifier
 import pandas as pd
+import csv
 from tqdm import tqdm
 
 # 日本語BERTの分かち書き用tokenizerです
@@ -62,7 +63,7 @@ def main():
 
     # epochの正解数を記録する変数
     epoch_corrects = 0
-
+    test_result = []
     for batch in tqdm(dl_test):  # testデータのDataLoader
         text_ids, former_text_ids, latter_text_ids = get_text(batch.Id, ref)
         text_ids = text_ids.to(device)
@@ -79,10 +80,25 @@ def main():
             _, preds = torch.max(outputs, 1)  # ラベルを予測
             epoch_corrects += torch.sum(preds == labels.data)  # 正解数の合計を更新
 
+            for text, former, latter, correct in zip(text_ids.tolist(), former_text_ids.tolist(), latter_text_ids.tolist(), (preds == labels.data).tolist()):
+                text = "".join(tokenizer.convert_ids_to_tokens(text))
+                former = "".join(tokenizer.convert_ids_to_tokens(former))
+                latter = "".join(tokenizer.convert_ids_to_tokens(latter))
+                test_result.append([
+                    text, former, latter, correct
+                ])
+
+
+
     # 正解率
     epoch_acc = epoch_corrects.double() / len(dl_test.dataset)
 
     print('テストデータ{}個での正解率：{:.4f}'.format(len(dl_test.dataset), epoch_acc))
+
+    # 結果の書き出し
+    with open('test_result.csv', 'w') as f:
+        writer = csv.writer(f)
+        writer.writerows(test_result)
 
 if __name__ == "__main__":
     main()
